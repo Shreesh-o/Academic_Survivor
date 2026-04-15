@@ -52,6 +52,7 @@ class BootScene extends Phaser.Scene {
         this.load.image('ese', 'Assets/Level-5-ESE.png');
         this.load.image('hod', 'Assets/Final boss.png');
         this.load.audio('loseMusic', 'Assets/faaa.mp3');
+        this.load.audio('bgMusic', 'Assets/bg_music.mp3');
     }
 
     create() {

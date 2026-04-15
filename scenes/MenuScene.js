@@ -114,7 +114,37 @@ class MenuScene extends Phaser.Scene {
             color: '#666666',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
+        // ---- GLOBAL MUSIC MANAGEMENT ----
+        let music = this.sound.get("bgMusic");
+        if (!music) {
+            music = this.sound.add("bgMusic", { loop: true, volume: 0.5 });
+        }
+        
+        this.musicBtn = this.add.text(screenW - 30, 30, music.isPlaying ? '🔊' : '🔇', {
+            fontFamily: '"Press Start 2P"',
+            fontSize: '24px',
+            color: music.isPlaying ? '#44ff88' : '#ff4444',
+            backgroundColor: '#111111',
+            padding: { x: 14, y: 10 },
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true });
 
+        this.musicBtn.on("pointerdown", () => {
+            if (music.isPlaying) {
+                music.pause();
+                this.registry.set('musicMuted', true);
+                this.musicBtn.setText("🔇");
+                this.musicBtn.setStyle({ color: '#ff4444' });
+            } else {
+                this.registry.set('musicMuted', false);
+                if (music.isPaused) {
+                    music.resume();
+                } else {
+                    music.play();
+                }
+                this.musicBtn.setText("🔊");
+                this.musicBtn.setStyle({ color: '#44ff88' });
+            }
+        });
 
         // ---- Badges ----
         const badgeY = 560;
@@ -220,6 +250,12 @@ class MenuScene extends Phaser.Scene {
     }
 
     _startGame() {
+        let music = this.sound.get("bgMusic");
+        let isMuted = this.registry.get('musicMuted');
+        if (music && !music.isPlaying && !isMuted) {
+            music.play();
+        }
+
         this.startBtn.disableInteractive();
         this.startBtn.setAlpha(0.5);
 

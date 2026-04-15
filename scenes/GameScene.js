@@ -77,6 +77,17 @@ class GameScene extends Phaser.Scene {
         this._updateHUD();
         this.trailSampleTimer = 0;
 
+        // ---- Ensure Music Plays ----
+        let music = this.sound.get('bgMusic');
+        let isMuted = this.registry.get('musicMuted');
+        if (music && !music.isPlaying && !isMuted) {
+            music.play();
+            if (this.gameMusicBtn) { // Visual toggle state match
+                this.gameMusicBtn.setText('🔊');
+                this.gameMusicBtn.setStyle({ color: '#44ff88' });
+            }
+        }
+
         // ---- Shutdown handler ----
         this.events.on('shutdown', this._onShutdown, this);
     }
@@ -146,6 +157,37 @@ class GameScene extends Phaser.Scene {
             strokeThickness: 5,
         }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(202).setAlpha(0);
+
+        // ---- Music Toggle ----
+        let music = this.sound.get('bgMusic');
+        this.gameMusicBtn = this.add.text(screenW - 30, 30, (music && music.isPlaying) ? '🔊' : '🔇', {
+            fontFamily: '"Press Start 2P"',
+            fontSize: '24px',
+            color: (music && music.isPlaying) ? '#44ff88' : '#ff4444',
+            backgroundColor: '#111111',
+            padding: { x: 14, y: 10 },
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(201).setInteractive({ useHandCursor: true });
+
+        this.gameMusicBtn.on('pointerdown', () => {
+            let m = this.sound.get('bgMusic');
+            if (m) {
+                if (m.isPlaying) {
+                    m.pause();
+                    this.registry.set('musicMuted', true);
+                    this.gameMusicBtn.setText('🔇');
+                    this.gameMusicBtn.setStyle({ color: '#ff4444' });
+                } else {
+                    this.registry.set('musicMuted', false);
+                    if (m.isPaused) {
+                        m.resume();
+                    } else {
+                        m.play();
+                    }
+                    this.gameMusicBtn.setText('🔊');
+                    this.gameMusicBtn.setStyle({ color: '#44ff88' });
+                }
+            }
+        });
     }
 
 
@@ -355,6 +397,11 @@ class GameScene extends Phaser.Scene {
         this.gameActive = false;
         this.player.setVelocity(0, 0);
 
+        // Stop music when losing
+        let music = this.sound.get('bgMusic');
+        if (music) {
+            music.stop();
+        }
 
         this.cameras.main.flash(500, 255, 0, 0, false);
         this.cameras.main.shake(500, 0.02);
@@ -371,6 +418,11 @@ class GameScene extends Phaser.Scene {
     _winGame(percent) {
         this.gameActive = false;
         this.player.setVelocity(0, 0);
+
+        let music = this.sound.get('bgMusic');
+        if (music) {
+            music.stop();
+        }
 
         this.cameras.main.flash(800, 255, 200, 0, false);
         this.time.delayedCall(1000, () => {
