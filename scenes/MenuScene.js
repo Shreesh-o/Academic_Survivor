@@ -1,7 +1,7 @@
 /* ========================================
    MENU SCENE — Title screen with full map
    background, player preview, start button,
-   and music toggle.
+   and music toggle. Designed for 1280x720.
    ======================================== */
 
 class MenuScene extends Phaser.Scene {
@@ -12,29 +12,23 @@ class MenuScene extends Phaser.Scene {
     create() {
         const mapW = GAME_CONFIG.MAP_WIDTH;
         const mapH = GAME_CONFIG.MAP_HEIGHT;
-        const screenW = this.cameras.main.width;
-        const screenH = this.cameras.main.height;
+        const screenW = this.cameras.main.width;   // 1280
+        const screenH = this.cameras.main.height;   // 720
 
-        // ---- Camera setup: zoomed out to show full map, NO bounds so it centers freely ----
+        // ---- Camera: zoomed out, centered on map ----
         this.cameras.main.setZoom(GAME_CONFIG.ZOOM_MENU);
         this.cameras.main.setBackgroundColor(0x050510);
-        // Center the camera on the map center
         this.cameras.main.centerOn(mapW / 2, mapH / 2);
 
-        // ---- Draw the map background ----
+        // ---- Draw world-space elements ----
         this._drawMapBackground(mapW, mapH);
-
-        // ---- Draw grid lines for visual texture ----
         this._drawGrid(mapW, mapH);
 
-        // ---- Player preview at center ----
+        // ---- Player preview at center of map ----
         this.playerPreview = this.add.graphics();
         this.playerPreview.setDepth(10);
-        const cx = mapW / 2;
-        const cy = mapH / 2;
-        this._drawPlayerAt(this.playerPreview, cx, cy);
+        this._drawPlayerAt(this.playerPreview, mapW / 2, mapH / 2);
 
-        // ---- Idle animation: gentle pulse ----
         this.tweens.add({
             targets: this.playerPreview,
             scaleX: 1.15,
@@ -45,48 +39,53 @@ class MenuScene extends Phaser.Scene {
             ease: 'Sine.easeInOut',
         });
 
-        // ---- UI layer (fixed to camera via scrollFactor 0) ----
+        // ---- Floating particles ----
+        this._createParticles();
 
-        // Title — large and centered
-        this.titleText = this.add.text(screenW / 2, screenH * 0.22, 'ACADEMIC\nSURVIVOR', {
+        // ==================================================================
+        // UI ELEMENTS — All use scrollFactor(0) so they're screen-fixed.
+        // Positions are in SCREEN coordinates (1280x720).
+        // ==================================================================
+
+        // ---- Title ----
+        this.titleText = this.add.text(screenW / 2, 120, 'ACADEMIC\nSURVIVOR', {
             fontFamily: '"Press Start 2P"',
-            fontSize: '36px',
+            fontSize: '52px',
             color: '#ff4444',
             align: 'center',
-            lineSpacing: 14,
+            lineSpacing: 16,
             shadow: {
-                offsetX: 3,
-                offsetY: 3,
+                offsetX: 4,
+                offsetY: 4,
                 color: '#8b0000',
                 blur: 0,
                 fill: true,
             },
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
-        // Subtitle
-        this.subtitleText = this.add.text(screenW / 2, screenH * 0.22 + 100, 'A SEMESTER ESCAPE SIMULATOR', {
+        // ---- Subtitle ----
+        this.subtitleText = this.add.text(screenW / 2, 250, 'A SEMESTER ESCAPE SIMULATOR', {
             fontFamily: '"Orbitron"',
-            fontSize: '12px',
+            fontSize: '16px',
             color: '#ffcc00',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
-        // Tagline
-        this.add.text(screenW / 2, screenH * 0.22 + 130, 'Draw boundaries. Claim territory. Don\'t get crushed by deadlines.', {
+        // ---- Tagline ----
+        this.add.text(screenW / 2, 290, 'Draw boundaries. Claim territory. Don\'t get crushed by deadlines.', {
             fontFamily: '"VT323"',
-            fontSize: '20px',
+            fontSize: '26px',
             color: '#999999',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
         // ---- START button ----
-        this.startBtn = this.add.text(screenW / 2, screenH * 0.6, '▶  START SEMESTER', {
+        this.startBtn = this.add.text(screenW / 2, 400, '▶  START SEMESTER', {
             fontFamily: '"Press Start 2P"',
-            fontSize: '14px',
+            fontSize: '20px',
             color: '#0a0a0f',
             backgroundColor: '#ff4444',
-            padding: { x: 28, y: 16 },
+            padding: { x: 36, y: 20 },
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true });
 
-        // Button hover effects
         this.startBtn.on('pointerover', () => {
             this.startBtn.setStyle({ backgroundColor: '#ff6666', color: '#000000' });
             this.startBtn.setScale(1.05);
@@ -99,7 +98,6 @@ class MenuScene extends Phaser.Scene {
             this._startGame();
         });
 
-        // Button pulse animation
         this.tweens.add({
             targets: this.startBtn,
             alpha: { from: 1, to: 0.7 },
@@ -110,20 +108,20 @@ class MenuScene extends Phaser.Scene {
         });
 
         // ---- Controls hint ----
-        this.add.text(screenW / 2, screenH * 0.72, 'WASD / Arrow Keys to move', {
+        this.add.text(screenW / 2, 480, 'WASD / Arrow Keys to move', {
             fontFamily: '"VT323"',
-            fontSize: '20px',
-            color: '#555555',
+            fontSize: '24px',
+            color: '#666666',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
-        // ---- Music toggle button (top-right with padding) ----
+        // ---- Music toggle (top-right) ----
         this.musicOn = true;
-        this.musicBtn = this.add.text(screenW - 24, 24, '🔊 MUSIC: ON', {
+        this.musicBtn = this.add.text(screenW - 30, 30, '🔊 MUSIC: ON', {
             fontFamily: '"Press Start 2P"',
-            fontSize: '9px',
+            fontSize: '12px',
             color: '#44ff88',
             backgroundColor: '#111111',
-            padding: { x: 12, y: 10 },
+            padding: { x: 14, y: 10 },
         }).setOrigin(1, 0).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true });
 
         this.musicBtn.on('pointerdown', () => {
@@ -133,42 +131,37 @@ class MenuScene extends Phaser.Scene {
             this.registry.set('musicOn', this.musicOn);
         });
 
-        // Initialize music preference
         this.registry.set('musicOn', this.musicOn);
 
         // ---- Badges ----
-        const badgeY = screenH * 0.83;
+        const badgeY = 560;
         const badges = [
             { text: 'GENRE: ROGUELIKE HORROR', color: '#ff6b6b' },
             { text: 'DIFFICULTY: IMPOSSIBLE', color: '#44ff88' },
             { text: 'LIVES: 1 (CGPA)', color: '#00d4ff' },
         ];
-        const badgeSpacing = 180;
-        const totalBadgeWidth = (badges.length - 1) * badgeSpacing;
-        let bx = screenW / 2 - totalBadgeWidth / 2;
+        const badgeSpacing = 240;
+        let bx = screenW / 2 - badgeSpacing;
         badges.forEach(b => {
             this.add.text(bx, badgeY, b.text, {
                 fontFamily: '"Press Start 2P"',
-                fontSize: '7px',
+                fontSize: '9px',
                 color: b.color,
                 backgroundColor: '#0a0a0f',
-                padding: { x: 8, y: 5 },
+                padding: { x: 10, y: 6 },
             }).setOrigin(0.5).setScrollFactor(0).setDepth(100)
               .setStroke(b.color, 1);
             bx += badgeSpacing;
         });
 
         // ---- Footer ----
-        this.add.text(screenW / 2, screenH - 30, 'Built under pressure, powered by caffeine and the fear of detention.', {
+        this.add.text(screenW / 2, screenH - 35, 'Built under pressure, powered by caffeine and the fear of detention.', {
             fontFamily: '"VT323"',
-            fontSize: '16px',
+            fontSize: '20px',
             color: '#333333',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
-        // ---- Floating particles for ambiance ----
-        this._createParticles();
-
-        // ---- Title flicker effect ----
+        // ---- Title flicker ----
         this.time.addEvent({
             delay: 4000,
             loop: true,
@@ -184,30 +177,21 @@ class MenuScene extends Phaser.Scene {
         });
     }
 
-    /** Draw the dark map background with border */
     _drawMapBackground(w, h) {
         const bg = this.add.graphics();
         bg.setDepth(0);
-
-        // Dark fill
         bg.fillStyle(0x0d0d18, 1);
         bg.fillRect(0, 0, w, h);
-
-        // Border glow
         bg.lineStyle(4, GAME_CONFIG.BORDER_COLOR, 0.8);
         bg.strokeRect(2, 2, w - 4, h - 4);
-
-        // Inner border
         bg.lineStyle(1, 0x331111, 0.5);
         bg.strokeRect(10, 10, w - 20, h - 20);
     }
 
-    /** Subtle grid lines */
     _drawGrid(w, h) {
         const gridGfx = this.add.graphics();
         gridGfx.setDepth(0);
         gridGfx.lineStyle(1, 0x111122, 0.3);
-
         const step = GAME_CONFIG.CELL_SIZE * 5;
         for (let x = 0; x <= w; x += step) {
             gridGfx.moveTo(x, 0);
@@ -220,7 +204,6 @@ class MenuScene extends Phaser.Scene {
         gridGfx.strokePath();
     }
 
-    /** Draw player icon */
     _drawPlayerAt(gfx, x, y) {
         gfx.fillStyle(0x00ff88, 0.15);
         gfx.fillCircle(x, y, 24);
@@ -230,11 +213,9 @@ class MenuScene extends Phaser.Scene {
         gfx.fillCircle(x - 4, y - 4, 5);
     }
 
-    /** Floating dot particles */
     _createParticles() {
         const mapW = GAME_CONFIG.MAP_WIDTH;
         const mapH = GAME_CONFIG.MAP_HEIGHT;
-
         for (let i = 0; i < 40; i++) {
             const dot = this.add.circle(
                 Phaser.Math.Between(0, mapW),
@@ -243,7 +224,6 @@ class MenuScene extends Phaser.Scene {
                 0xff4444,
                 Phaser.Math.FloatBetween(0.05, 0.2)
             ).setDepth(2);
-
             this.tweens.add({
                 targets: dot,
                 y: dot.y + Phaser.Math.Between(-80, 80),
@@ -256,7 +236,6 @@ class MenuScene extends Phaser.Scene {
         }
     }
 
-    /** Transition: zoom into player, then start GameScene */
     _startGame() {
         this.startBtn.disableInteractive();
         this.startBtn.setAlpha(0.5);
@@ -264,18 +243,15 @@ class MenuScene extends Phaser.Scene {
         const cx = GAME_CONFIG.MAP_WIDTH / 2;
         const cy = GAME_CONFIG.MAP_HEIGHT / 2;
 
-        // Smooth zoom in
         this.cameras.main.pan(cx, cy, 1500, 'Sine.easeInOut');
         this.cameras.main.zoomTo(GAME_CONFIG.ZOOM_GAME_START, 1500, 'Sine.easeInOut');
 
-        // Fade out UI
         this.tweens.add({
             targets: [this.titleText, this.subtitleText, this.startBtn, this.musicBtn],
             alpha: 0,
             duration: 800,
         });
 
-        // Transition after zoom
         this.time.delayedCall(1600, () => {
             this.scene.start('GameScene');
         });

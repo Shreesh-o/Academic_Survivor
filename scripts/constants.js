@@ -11,17 +11,17 @@ const GAME_CONFIG = {
     CELL_SIZE: 20,
 
     // Player settings
-    PLAYER_SPEED: 200,
+    PLAYER_SPEED: 220,
     PLAYER_SIZE: 14,
 
     // Camera zoom levels
-    ZOOM_MENU: 0.5,
+    ZOOM_MENU: 0.65,
     ZOOM_GAME_START: 0.75,
-    ZOOM_LEVEL_STEP: 0.04, // zoom out this much per level
+    ZOOM_LEVEL_STEP: 0.04,
 
     // Win / progression thresholds
     WIN_PERCENT: 75,
-    LEVEL_UP_PERCENT: 12, // % of area to trigger next level (lower since more levels to cover)
+    LEVEL_UP_PERCENT: 12,
 
     // Trail settings
     TRAIL_COLOR: 0x00ff88,
@@ -49,6 +49,7 @@ const GAME_CONFIG = {
 };
 
 // Enemy definitions per level
+// behavior: 'bounce' = random bouncing, 'chase' = follows player
 const ENEMY_TYPES = [
     {
         level: 1,
@@ -57,7 +58,8 @@ const ENEMY_TYPES = [
         color: 0x44ff88,
         speed: 55,
         size: 8,
-        count: 8,       // 8 slow, small enemies
+        count: 8,
+        behavior: 'bounce',
     },
     {
         level: 2,
@@ -66,7 +68,8 @@ const ENEMY_TYPES = [
         color: 0xffcc00,
         speed: 100,
         size: 12,
-        count: 3,        // 3 faster ISE enemies
+        count: 3,
+        behavior: 'bounce',
     },
     {
         level: 3,
@@ -75,7 +78,8 @@ const ENEMY_TYPES = [
         color: 0xff8c00,
         speed: 130,
         size: 20,
-        count: 1,        // 1 big, fast MSE
+        count: 1,
+        behavior: 'chase',     // MSE follows the player
     },
     {
         level: 4,
@@ -84,7 +88,8 @@ const ENEMY_TYPES = [
         color: 0xff4444,
         speed: 160,
         size: 26,
-        count: 1,        // 1 bigger, faster ESE
+        count: 1,
+        behavior: 'chase',     // ESE follows the player
     },
     {
         level: 5,
@@ -93,6 +98,7 @@ const ENEMY_TYPES = [
         color: 0xff0000,
         speed: 190,
         size: 34,
-        count: 1,        // 1 massive final boss
+        count: 1,
+        behavior: 'chase',     // HOD follows the player aggressively
     },
 ];

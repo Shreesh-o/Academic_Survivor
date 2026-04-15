@@ -307,7 +307,7 @@ class GameScene extends Phaser.Scene {
         this._drawPlayer();
         this._handleTrail(delta);
         this._renderTrail();
-        this.enemyManager.update();
+        this.enemyManager.update(this.player.x, this.player.y);
         this._checkCollisions();
         this._updateHUD();
 

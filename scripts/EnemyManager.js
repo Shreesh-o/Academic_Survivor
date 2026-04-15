@@ -1,14 +1,15 @@
 /* ========================================
    ENEMY MANAGER — Spawns and manages enemies
-   Enemies bounce around the map, collide with
-   player/trail for game over.
+   Supports two behaviors:
+   - 'bounce': random bouncing off walls
+   - 'chase': actively follows the player
    ======================================== */
 
 class EnemyManager {
     constructor(scene) {
         this.scene = scene;
-        this.enemies = [];      // Array of enemy game objects
-        this.enemyData = [];    // Parallel array of metadata
+        this.enemies = [];
+        this.enemyData = [];
     }
 
     /**
@@ -29,45 +30,48 @@ class EnemyManager {
         const mapH = GAME_CONFIG.MAP_HEIGHT;
         const margin = 100;
 
-        // Spawn at random position away from center
+        // Spawn away from player (center)
         let x, y;
         do {
             x = Phaser.Math.Between(margin, mapW - margin);
             y = Phaser.Math.Between(margin, mapH - margin);
         } while (
-            Math.abs(x - mapW / 2) < 200 &&
-            Math.abs(y - mapH / 2) < 200
+            Math.abs(x - mapW / 2) < 250 &&
+            Math.abs(y - mapH / 2) < 250
         );
 
-        // Create enemy as a graphics-drawn circle added to physics
+        // Graphics for enemy visual
         const gfx = this.scene.add.graphics();
         gfx.setDepth(8);
-
-        // Draw the enemy shape
         this._drawEnemy(gfx, typeDef);
 
-        // Add physics body via a zone
+        // Physics zone
         const zone = this.scene.add.zone(x, y, typeDef.size * 2, typeDef.size * 2);
         this.scene.physics.add.existing(zone);
         zone.body.setCircle(typeDef.size);
         zone.body.setOffset(0, 0);
 
-        // Random velocity direction
-        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        zone.body.setVelocity(
-            Math.cos(angle) * typeDef.speed,
-            Math.sin(angle) * typeDef.speed
-        );
-
-        // Bounce off world bounds
-        zone.body.setBounce(1, 1);
-        zone.body.setCollideWorldBounds(true);
+        if (typeDef.behavior === 'bounce') {
+            // Random bounce behavior
+            const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+            zone.body.setVelocity(
+                Math.cos(angle) * typeDef.speed,
+                Math.sin(angle) * typeDef.speed
+            );
+            zone.body.setBounce(1, 1);
+            zone.body.setCollideWorldBounds(true);
+        } else {
+            // Chase enemies don't bounce — they steer toward the player
+            zone.body.setCollideWorldBounds(true);
+            zone.body.setBounce(0.5, 0.5);
+        }
 
         const enemyObj = {
             gfx,
             zone,
             typeDef,
             size: typeDef.size,
+            behavior: typeDef.behavior || 'bounce',
         };
 
         this.enemies.push(enemyObj);
@@ -78,26 +82,70 @@ class EnemyManager {
     _drawEnemy(gfx, typeDef) {
         // Outer glow
         gfx.fillStyle(typeDef.color, 0.2);
-        gfx.fillCircle(0, 0, typeDef.size + 4);
+        gfx.fillCircle(0, 0, typeDef.size + 6);
         // Core
         gfx.fillStyle(typeDef.color, 0.85);
         gfx.fillCircle(0, 0, typeDef.size);
         // Inner highlight
         gfx.fillStyle(0xffffff, 0.3);
         gfx.fillCircle(-typeDef.size * 0.25, -typeDef.size * 0.25, typeDef.size * 0.35);
-    }
 
-    /** Update enemy graphics positions to follow physics zones */
-    update() {
-        for (const enemy of this.enemies) {
-            enemy.gfx.x = enemy.zone.x;
-            enemy.gfx.y = enemy.zone.y;
+        // Eye-like indicators for chase enemies (menacing look)
+        if (typeDef.behavior === 'chase') {
+            gfx.fillStyle(0xffffff, 0.9);
+            gfx.fillCircle(-typeDef.size * 0.22, -typeDef.size * 0.15, typeDef.size * 0.18);
+            gfx.fillCircle(typeDef.size * 0.22, -typeDef.size * 0.15, typeDef.size * 0.18);
+            gfx.fillStyle(0x000000, 1);
+            gfx.fillCircle(-typeDef.size * 0.22, -typeDef.size * 0.12, typeDef.size * 0.09);
+            gfx.fillCircle(typeDef.size * 0.22, -typeDef.size * 0.12, typeDef.size * 0.09);
         }
     }
 
     /**
-     * Check collision between enemies and a point (player position).
-     * Returns true if any enemy is within collision range.
+     * Update enemy graphics positions and apply chase AI.
+     * Must be called with player position for chase enemies.
+     */
+    update(playerX, playerY) {
+        for (const enemy of this.enemies) {
+            // Update graphics position
+            enemy.gfx.x = enemy.zone.x;
+            enemy.gfx.y = enemy.zone.y;
+
+            // Chase behavior: steer toward the player
+            if (enemy.behavior === 'chase' && playerX !== undefined) {
+                const dx = playerX - enemy.zone.x;
+                const dy = playerY - enemy.zone.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 0) {
+                    const speed = enemy.typeDef.speed;
+                    // Normalized direction toward player
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+
+                    // Smoothly steer toward player (lerp current velocity toward target)
+                    const currentVx = enemy.zone.body.velocity.x;
+                    const currentVy = enemy.zone.body.velocity.y;
+                    const targetVx = nx * speed;
+                    const targetVy = ny * speed;
+
+                    // Steering factor — how aggressively they turn
+                    // HOD steers fastest (0.04), ESE (0.03), MSE (0.02)
+                    let steerFactor = 0.02;
+                    if (enemy.typeDef.name === 'ESE') steerFactor = 0.03;
+                    if (enemy.typeDef.name === 'HOD') steerFactor = 0.04;
+
+                    const newVx = currentVx + (targetVx - currentVx) * steerFactor;
+                    const newVy = currentVy + (targetVy - currentVy) * steerFactor;
+
+                    enemy.zone.body.setVelocity(newVx, newVy);
+                }
+            }
+        }
+    }
+
+    /**
+     * Check collision between enemies and player.
      */
     checkPlayerCollision(playerX, playerY, playerRadius) {
         for (const enemy of this.enemies) {
@@ -112,8 +160,7 @@ class EnemyManager {
     }
 
     /**
-     * Check collision between enemies and trail points.
-     * Returns true if any enemy touches any trail segment.
+     * Check collision between enemies and trail.
      */
     checkTrailCollision(trailPoints) {
         if (trailPoints.length < 2) return false;
@@ -121,7 +168,7 @@ class EnemyManager {
         for (const enemy of this.enemies) {
             const ex = enemy.zone.x;
             const ey = enemy.zone.y;
-            const er = enemy.size + 2; // small buffer
+            const er = enemy.size + 2;
 
             for (let i = 0; i < trailPoints.length - 1; i++) {
                 const p1 = trailPoints[i];
