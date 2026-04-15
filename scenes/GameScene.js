@@ -98,18 +98,38 @@ class GameScene extends Phaser.Scene {
     }
 
     _createHUD() {
-        // Requested user format exactly
-        this.uiText = this.add.text(20, 20, "", {
-            fontSize: "24px",
-            fontFamily: '"Press Start 2P", monospace',
-            color: "#ffffff"
-        }).setScrollFactor(0).setDepth(201);
-
-        // Also a semi-transparent background to make text readable against moving background
+        // Dark semi-transparent background box
         this.hudBg = this.add.graphics();
         this.hudBg.setScrollFactor(0).setDepth(200);
-        this.hudBg.fillStyle(0x000000, 0.65);
-        this.hudBg.fillRoundedRect(10, 10, 300, 70, 8);
+        this.hudBg.fillStyle(0x0a0a0f, 0.9);
+        this.hudBg.fillRoundedRect(10, 10, 320, 95, 8);
+
+        // Dot 1 (Area)
+        this.add.circle(28, 30, 6, 0x44ff88).setScrollFactor(0).setDepth(201);
+        
+        // AREA Text
+        this.areaText = this.add.text(45, 23, "AREA: 1.0%", {
+            fontSize: "14px",
+            fontFamily: '"Press Start 2P"',
+            color: "#44ff88"
+        }).setScrollFactor(0).setDepth(201);
+
+        // LEVEL Text
+        this.levelText = this.add.text(22, 50, "LEVEL 1: ASSIGNMENTS", {
+            fontSize: "12px",
+            fontFamily: '"Press Start 2P"',
+            color: "#ffcc00"
+        }).setScrollFactor(0).setDepth(201);
+
+        // Dot 2 (Safe Zone)
+        this.safeZoneDot = this.add.circle(28, 83, 6, 0x44ff88).setScrollFactor(0).setDepth(201);
+
+        // SAFE ZONE Text
+        this.safeZoneText = this.add.text(45, 76, "SAFE ZONE", {
+            fontSize: "14px",
+            fontFamily: '"Press Start 2P"',
+            color: "#44ff88"
+        }).setScrollFactor(0).setDepth(201);
 
         const screenW = this.cameras.main.width;
         const screenH = this.cameras.main.height;
@@ -132,13 +152,27 @@ class GameScene extends Phaser.Scene {
 
     /** Update HUD text using the specific template provided */
     _updateHUD() {
-        // As requested literal variables from user (mapping them to our equivalents):
         const areaCaptured = this.gridManager.getCapturePercent();
+        this.areaText.setText(`AREA: ${areaCaptured.toFixed(1)}%`);
 
-        // Exact required user string logic:
-        this.uiText.setText(
-            `Level: ${this.currentLevel}\nArea: ${Math.floor(areaCaptured)}%`
-        );
+        const enemyType = ENEMY_TYPES.find(t => t.level === this.currentLevel);
+        const label = enemyType ? enemyType.label : 'UNKNOWN';
+        this.levelText.setText(`LEVEL ${this.currentLevel}: ${label}`);
+
+        // Dynamic Safe zone checking purely for visual immersion (matches screenshot style)
+        const px = this.player.x;
+        const py = this.player.y;
+        const inCaptured = this.gridManager.isCaptured(px, py);
+
+        if (inCaptured && !this.isDrawingTrail) {
+            this.safeZoneText.setText("SAFE ZONE");
+            this.safeZoneText.setColor("#44ff88");
+            this.safeZoneDot.setFillStyle(0x44ff88);
+        } else {
+            this.safeZoneText.setText("DANGER ZONE");
+            this.safeZoneText.setColor("#ff4444");
+            this.safeZoneDot.setFillStyle(0xff4444);
+        }
     }
 
     /** Grid lines */

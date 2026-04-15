@@ -19,6 +19,10 @@ class GameOverScene extends Phaser.Scene {
 
         this.cameras.main.setBackgroundColor(0x0a0a0f);
 
+        // ---- Play lose music ----
+        let loseMusic = this.sound.add("loseMusic", { volume: 0.8 });
+        loseMusic.play();
+
         // ---- Scanline overlay ----
         const scanlines = this.add.graphics();
         scanlines.setDepth(0);
