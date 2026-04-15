@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&family=Orbitron:wght@400;700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a0f;
+    color: #e0e0e0;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .scanlines {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  .hero {
+    text-align: center;
+    padding: 3rem 1rem 2rem;
+    border: 2px solid #ff4444;
+    border-radius: 4px;
+    margin-bottom: 2rem;
+    position: relative;
+    background: rgba(255,68,68,0.03);
+  }
+
+  .hero::before {
+    content: 'PRESS START TO BEGIN SEMESTER';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0a0a0f;
+    padding: 0 12px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #ff4444;
+    white-space: nowrap;
+  }
+
+  .game-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(16px, 4vw, 28px);
+    color: #ff4444;
+    text-shadow: 0 0 20px #ff4444, 3px 3px 0 #8b0000;
+    letter-spacing: 2px;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+    animation: flicker 4s infinite;
+  }
+
+  @keyframes flicker {
+    0%,95%,97%,100% { opacity: 1; }
+    96% { opacity: 0.6; }
+  }
+
+  .subtitle {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    color: #ffcc00;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+
+  .tagline {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    color: #aaa;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 6px 10px;
+    border: 1px solid;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+
+  .badge-red { color: #ff6b6b; border-color: #ff6b6b; background: rgba(255,107,107,0.08); }
+  .badge-yellow { color: #ffcc00; border-color: #ffcc00; background: rgba(255,204,0,0.08); }
+  .badge-green { color: #44ff88; border-color: #44ff88; background: rgba(68,255,136,0.08); }
+  .badge-cyan { color: #00d4ff; border-color: #00d4ff; background: rgba(0,212,255,0.08); }
+
+  /* SECTIONS */
+  .section {
+    margin-bottom: 2rem;
+    border: 1px solid #222;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    background: #111;
+    border-bottom: 1px solid #222;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-icon {
+    font-size: 20px;
+    width: 28px;
+    text-align: center;
+  }
+
+  .section-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #ffcc00;
+    letter-spacing: 1px;
+  }
+
+  .section-body {
+    padding: 1.25rem 1rem;
+    background: #0d0d12;
+  }
+
+  /* STORY */
+  .story-text {
+    font-size: 20px;
+    color: #ccc;
+    line-height: 1.8;
+  }
+
+  .story-text .highlight {
+    color: #ff4444;
+    font-size: 22px;
+  }
+
+  /* GAMEPLAY */
+  .mechanic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .mechanic-card {
+    border: 1px solid #1a1a2e;
+    border-radius: 4px;
+    padding: 1rem;
+    background: #0a0a15;
+  }
+
+  .mechanic-card .mc-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+  }
+
+  .mechanic-card .mc-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: #ffcc00;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  .mechanic-card .mc-desc {
+    font-size: 17px;
+    color: #999;
+    line-height: 1.5;
+  }
+
+  /* ENEMIES TABLE */
+  .enemy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 17px;
+  }
+
+  .enemy-table th {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #666;
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid #1a1a1a;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .enemy-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid #111;
+    vertical-align: middle;
+  }
+
+  .enemy-table tr:last-child td { border-bottom: none; }
+
+  .enemy-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .enemy-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .size-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .size-pip {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .threat-tag {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 4px 7px;
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  .t-low { background: rgba(68,255,136,0.12); color: #44ff88; border: 1px solid #44ff8844; }
+  .t-med { background: rgba(255,204,0,0.12); color: #ffcc00; border: 1px solid #ffcc0044; }
+  .t-high { background: rgba(255,140,0,0.12); color: #ff8c00; border: 1px solid #ff8c0044; }
+  .t-xhigh { background: rgba(255,68,68,0.12); color: #ff4444; border: 1px solid #ff444444; }
+  .t-crit { background: rgba(200,0,200,0.15); color: #ff00ff; border: 1px solid #ff00ff44; }
+  .t-boss { background: rgba(255,0,0,0.2); color: #ff0000; border: 1px solid #ff0000; animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 4px #ff0000; }
+    50% { box-shadow: 0 0 12px #ff0000; }
+  }
+
+  .speed-tag {
+    font-size: 15px;
+    color: #666;
+  }
+
+  /* POWERUPS */
+  .powerup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .powerup-card {
+    border: 1px solid #1a1a2e;
+    border-radius: 4px;
+    padding: 1.25rem;
+    background: #080810;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .powerup-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .powerup-card.pu-blue::after { background: #00d4ff; }
+  .powerup-card.pu-orange::after { background: #ff8c00; }
+
+  .pu-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .pu-blue .pu-label { color: #00d4ff; }
+  .pu-orange .pu-label { color: #ff8c00; }
+
+  .pu-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .pu-effect {
+    font-size: 17px;
+    color: #888;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .pu-stat {
+    display: flex;
+    gap: 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    flex-wrap: wrap;
+  }
+
+  .pu-stat span {
+    padding: 3px 7px;
+    border-radius: 2px;
+  }
+
+  .pu-blue .pu-stat span { background: rgba(0,212,255,0.1); color: #00d4ff; border: 1px solid rgba(0,212,255,0.3); }
+  .pu-orange .pu-stat span { background: rgba(255,140,0,0.1); color: #ff8c00; border: 1px solid rgba(255,140,0,0.3); }
+
+  /* CONTROLS */
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+  }
+
+  .ctrl-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .kbd {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 5px 8px;
+    background: #111;
+    border: 1px solid #333;
+    border-bottom: 3px solid #333;
+    border-radius: 3px;
+    color: #ffcc00;
+    white-space: nowrap;
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .ctrl-desc {
+    font-size: 17px;
+    color: #999;
+  }
+
+  /* SCORE TABLE */
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .score-tier {
+    border: 1px solid #1a1a1a;
+    border-radius: 4px;
+    padding: 0.85rem;
+    text-align: center;
+    background: #080810;
+  }
+
+  .score-tier .st-grade {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .score-tier .st-label {
+    font-size: 15px;
+    color: #666;
+  }
+
+  .grade-s .st-grade { color: #ffcc00; text-shadow: 0 0 10px #ffcc00; }
+  .grade-a .st-grade { color: #44ff88; }
+  .grade-b .st-grade { color: #00d4ff; }
+  .grade-c .st-grade { color: #ff8c00; }
+  .grade-d .st-grade { color: #ff4444; }
+  .grade-f .st-grade { color: #666; }
+
+  /* HOD BOSS */
+  .hod-box {
+    border: 2px solid #ff0000;
+    border-radius: 4px;
+    padding: 1.25rem;
+    background: rgba(255,0,0,0.04);
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    position: relative;
+  }
+
+  .hod-box::before {
+    content: '⚠ FINAL BOSS';
+    position: absolute;
+    top: -12px; left: 50%;
+    transform: translateX(-50%);
+    background: #0a0a0f;
+    padding: 0 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #ff0000;
+    white-space: nowrap;
+    letter-spacing: 2px;
+  }
+
+  .hod-sprite {
+    font-size: 52px;
+    line-height: 1;
+    animation: shake 3s infinite;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: rotate(0deg); }
+    25% { transform: rotate(-3deg); }
+    75% { transform: rotate(3deg); }
+  }
+
+  .hod-info .hod-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    color: #ff0000;
+    text-shadow: 0 0 10px #ff0000;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+
+  .hod-info .hod-desc {
+    font-size: 18px;
+    color: #aaa;
+    line-height: 1.7;
+  }
+
+  .hod-stats {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .hod-stat-pill {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    color: #ff4444;
+    background: rgba(255,68,68,0.1);
+    border: 1px solid rgba(255,68,68,0.3);
+    letter-spacing: 1px;
+  }
+
+  /* STRATEGY */
+  .strat-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .strat-list li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 18px;
+    color: #bbb;
+    line-height: 1.5;
+  }
+
+  .strat-list li .bullet {
+    color: #ff4444;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 2rem 0 0;
+    border-top: 1px solid #111;
+    margin-top: 2rem;
+  }
+
+  .footer .footer-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #333;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .footer .footer-msg {
+    font-size: 20px;
+    color: #444;
+  }
+
+  .footer .footer-msg .red { color: #ff4444; }
+
+  /* DIVIDER */
+  .pixel-divider {
+    height: 2px;
+    background: repeating-linear-gradient(90deg, #ff4444 0px, #ff4444 6px, transparent 6px, transparent 12px);
+    margin: 0 0 2rem;
+    opacity: 0.4;
+  }
+
+  @media (max-width: 540px) {
+    .powerup-grid { grid-template-columns: 1fr; }
+    .score-grid { grid-template-columns: repeat(2, 1fr); }
+    .hod-box { flex-direction: column; align-items: center; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="game-title">ACADEMIC<br>SURVIVAL</div>
+    <div class="subtitle">A Semester Escape Simulator</div>
+    <div class="tagline">Draw boundaries. Claim territory. Don't get crushed by deadlines.</div>
+    <div class="badge-row">
+      <span class="badge badge-red">GENRE: ROGUELIKE HORROR</span>
+      <span class="badge badge-yellow">PLATFORM: COLLEGE LIFE</span>
+      <span class="badge badge-green">DIFFICULTY: IMPOSSIBLE</span>
+      <span class="badge badge-cyan">LIVES: 1 (CGPA)</span>
+    </div>
+  </div>
+
+  <div class="pixel-divider"></div>
+
+  <!-- STORY -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📜</div>
+      <div class="section-title">THE LORE</div>
+    </div>
+    <div class="section-body">
+      <div class="story-text">
+        You are a <span class="highlight">4th year student</span> trapped inside a sprawling academic map with one goal — survive until graduation. Carve out free time by encircling it with movement, but beware: the campus is infested with <span class="highlight">academic threats</span> that grow larger and faster as the semester drags on. One wrong move and your trail is broken. Your attendance is gone. Your GPA is dust.<br><br>
+        You have only your wits, a hall ticket, and two miracle power-ups standing between you and academic oblivion.
+      </div>
+    </div>
+  </div>
+
+  <!-- GAMEPLAY -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🕹</div>
+      <div class="section-title">CORE MECHANICS</div>
+    </div>
+    <div class="section-body">
+      <div class="mechanic-grid">
+        <div class="mechanic-card">
+          <div class="mc-icon">🧍</div>
+          <div class="mc-title">Player Movement</div>
+          <div class="mc-desc">Move freely across the academic map. Leave a glowing trail wherever you go — your projected ambitions.</div>
+        </div>
+        <div class="mechanic-card">
+          <div class="mc-icon">⬛</div>
+          <div class="mc-title">Area Capture</div>
+          <div class="mc-desc">Complete a closed loop to claim territory. The bigger the loop, the higher the reward — and the higher the risk.</div>
+        </div>
+        <div class="mechanic-card">
+          <div class="mc-icon">💀</div>
+          <div class="mc-title">Instant Game Over</div>
+          <div class="mc-desc">Enemy touches your trail or your body = GAME OVER. No second chances. Just like real college.</div>
+        </div>
+        <div class="mechanic-card">
+          <div class="mc-icon">📊</div>
+          <div class="mc-title">Score = Area %</div>
+          <div class="mc-desc">Score is based on total map area captured. Hit 75%+ to pass the semester with dignity.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENEMIES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">👾</div>
+      <div class="section-title">ENEMY ROSTER — THREAT ESCALATION</div>
+    </div>
+    <div class="section-body">
+      <table class="enemy-table">
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th>Enemy</th>
+            <th>Size</th>
+            <th>Speed</th>
+            <th>Threat</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:#555; font-family:'Press Start 2P',monospace; font-size:8px;">LV 1</td>
+            <td>
+              <div class="enemy-name" style="color:#44ff88;">Assignments</div>
+              <div style="font-size:15px; color:#555;">The daily nuisance</div>
+            </td>
+            <td>
+              <div class="size-bar">
+                <span class="size-pip" style="background:#44ff88;"></span>
+                <span style="color:#666; font-size:15px;">Normal</span>
+              </div>
+            </td>
+            <td class="speed-tag">Slow ▸</td>
+            <td><span class="threat-tag t-low">LOW</span></td>
+          </tr>
+          <tr>
+            <td style="color:#555; font-family:'Press Start 2P',monospace; font-size:8px;">LV 2</td>
+            <td>
+              <div class="enemy-name" style="color:#00d4ff;">Practicals</div>
+              <div style="font-size:15px; color:#555;">Small but disturbingly fast</div>
+            </td>
+            <td>
+              <div class="size-bar">
+                <span class="size-pip" style="background:#00d4ff;"></span>
+                <span style="color:#666; font-size:15px;">Normal</span>
+              </div>
+            </td>
+            <td class="speed-tag">Fast ▸▸</td>
+            <td><span class="threat-tag t-med">MEDIUM</span></td>
+          </tr>
+          <tr>
+            <td style="color:#555; font-family:'Press Start 2P',monospace; font-size:8px;">LV 3</td>
+            <td>
+              <div class="enemy-name" style="color:#ffcc00;">ISE Exams</div>
+              <div style="font-size:15px; color:#555;">Slightly swollen with anxiety</div>
+            </td>
+            <td>
+              <div class="size-bar">
+                <span class="size-pip" style="background:#ffcc00; width:11px; height:11px;"></span>
+                <span style="color:#666; font-size:15px;">Slightly Larger</span>
+              </div>
+            </td>
+            <td class="speed-tag">Moderate ▸▸</td>
+            <td><span class="threat-tag t-high">HIGH</span></td>
+          </tr>
+          <tr>
+            <td style="color:#555; font-family:'Press Start 2P',monospace; font-size:8px;">LV 4</td>
+            <td>
+              <div class="enemy-name" style="color:#ff8c00;">MSE</div>
+              <div style="font-size:15px; color:#555;">Mid-semester menace</div>
+            </td>
+            <td>
+              <div class="size-bar">
+                <span class="size-pip" style="background:#ff8c00; width:14px; height:14px;"></span>
+                <span style="color:#666; font-size:15px;">Big</span>
+              </div>
+            </td>
+            <td class="speed-tag">Fast ▸▸▸</td>
+            <td><span class="threat-tag t-xhigh">V. HIGH</span></td>
+          </tr>
+          <tr>
+            <td style="color:#555; font-family:'Press Start 2P',monospace; font-size:8px;">LV 5</td>
+            <td>
+              <div class="enemy-name" style="color:#ff4444;">ESE</div>
+              <div style="font-size:15px; color:#555;">End-sem extinction event</div>
+            </td>
+            <td>
+              <div class="size-bar">
+                <span class="size-pip" style="background:#ff4444; width:17px; height:17px;"></span>
+                <span style="color:#666; font-size:15px;">Bigger than MSE</span>
+              </div>
+            </td>
+            <td class="speed-tag">Very Fast ▸▸▸▸</td>
+            <td><span class="threat-tag t-crit">CRITICAL</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FINAL BOSS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">💀</div>
+      <div class="section-title">FINAL BOSS</div>
+    </div>
+    <div class="section-body">
+      <div class="hod-box">
+        <div class="hod-sprite">🎓</div>
+        <div class="hod-info">
+          <div class="hod-name">THE HOD</div>
+          <div class="hod-desc">
+            He has seen empires fall. Bigger than the ESE, faster than your excuses, and completely immune to your sob story. The HOD patrols every corner of the map simultaneously. He knows where your trail leads before you do. One brush of his presence and your enrollment is cancelled.<br><br>
+            To survive, you must capture over 80% of the map while he hunts you. No power-ups. No checkpoints. Just you and the HOD.
+          </div>
+          <div class="hod-stats">
+            <span class="hod-stat-pill">SIZE: MASSIVE</span>
+            <span class="hod-stat-pill">SPEED: LUDICROUS</span>
+            <span class="hod-stat-pill">MERCY: NULL</span>
+            <span class="hod-stat-pill">IMMUNE TO EXCUSES</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POWER UPS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">⚡</div>
+      <div class="section-title">POWER-UPS</div>
+    </div>
+    <div class="section-body">
+      <div class="powerup-grid">
+        <div class="powerup-card pu-blue">
+          <div class="pu-label">POWER-UP 01</div>
+          <div class="pu-name">Proxy Attendance</div>
+          <div class="pu-effect">
+            Your trusted ally answers for you. For a limited time, enemies believe you're somewhere else entirely — phasing through your trail without triggering a game over. Works once per enemy wave. Best deployed mid-capture when an MSE or ESE cuts off your escape route.
+          </div>
+          <div class="pu-stat">
+            <span>DURATION: 8 SEC</span>
+            <span>CHARGES: 2/GAME</span>
+            <span>RISK: MEDIUM</span>
+          </div>
+        </div>
+        <div class="powerup-card pu-orange">
+          <div class="pu-label">POWER-UP 02</div>
+          <div class="pu-name">Mass Bunker</div>
+          <div class="pu-effect">
+            You and every student on the map enters complete lockdown. All enemies freeze in place — unable to process paperwork, let alone hunt you. Claim a massive area risk-free. Cannot be used during the HOD boss fight because the HOD signed the bunker order.
+          </div>
+          <div class="pu-stat">
+            <span>DURATION: 12 SEC</span>
+            <span>CHARGES: 1/GAME</span>
+            <span>RISK: NONE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">⌨</div>
+      <div class="section-title">CONTROLS</div>
+    </div>
+    <div class="section-body">
+      <div class="controls-grid">
+        <div class="ctrl-item">
+          <span class="kbd">↑ W</span>
+          <span class="ctrl-desc">Move Up</span>
+        </div>
+        <div class="ctrl-item">
+          <span class="kbd">↓ S</span>
+          <span class="ctrl-desc">Move Down</span>
+        </div>
+        <div class="ctrl-item">
+          <span class="kbd">← A</span>
+          <span class="ctrl-desc">Move Left</span>
+        </div>
+        <div class="ctrl-item">
+          <span class="kbd">→ D</span>
+          <span class="ctrl-desc">Move Right</span>
+        </div>
+        <div class="ctrl-item">
+          <span class="kbd">Q</span>
+          <span class="ctrl-desc">Proxy Attendance</span>
+        </div>
+        <div class="ctrl-item">
+          <span class="kbd">E</span>
+          <span class="ctrl-desc">Mass Bunker</span>
+        </div>
+        <div class="ctrl-item">
+          <span class="kbd">ESC</span>
+          <span class="ctrl-desc">Pause / Cry</span>
+        </div>
+        <div class="ctrl-item">
+          <span class="kbd">R</span>
+          <span class="ctrl-desc">Repeat Year</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORING -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🏆</div>
+      <div class="section-title">GRADE THRESHOLDS</div>
+    </div>
+    <div class="section-body">
+      <div class="score-grid">
+        <div class="score-tier grade-s">
+          <div class="st-grade">S</div>
+          <div class="st-label">90%+ Area<br>Topper</div>
+        </div>
+        <div class="score-tier grade-a">
+          <div class="st-grade">A</div>
+          <div class="st-label">75–89%<br>Passing</div>
+        </div>
+        <div class="score-tier grade-b">
+          <div class="st-grade">B</div>
+          <div class="st-label">60–74%<br>Surviving</div>
+        </div>
+        <div class="score-tier grade-c">
+          <div class="st-grade">C</div>
+          <div class="st-label">45–59%<br>Struggling</div>
+        </div>
+        <div class="score-tier grade-d">
+          <div class="st-grade">D</div>
+          <div class="st-label">30–44%<br>KT Incoming</div>
+        </div>
+        <div class="score-tier grade-f">
+          <div class="st-grade">F</div>
+          <div class="st-label">&lt;30%<br>Detained</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STRATEGY -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🧠</div>
+      <div class="section-title">SURVIVAL TIPS</div>
+    </div>
+    <div class="section-body">
+      <ul class="strat-list">
+        <li><span class="bullet">▶</span><span>Start with small captures near the walls — short trails mean shorter exposure windows.</span></li>
+        <li><span class="bullet">▶</span><span>Never capture big territory when an ESE or HOD is nearby. Patience keeps your CGPA alive.</span></li>
+        <li><span class="bullet">▶</span><span>Save Mass Bunker for the ESE wave — it's the one moment where a massive land grab is actually viable.</span></li>
+        <li><span class="bullet">▶</span><span>Proxy Attendance is a trail shield, not an invisibility cloak. Enemies can still collide with your body.</span></li>
+        <li><span class="bullet">▶</span><span>The HOD moves toward your trail endpoint. Bait him into a corner, then loop back from the opposite side.</span></li>
+        <li><span class="bullet">▶</span><span>75% map capture unlocks a passing grade. Anything above that is for the brave — or the very foolish.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-title">ACADEMIC SURVIVAL // ALL RIGHTS RESERVED // RESULTS MAY VARY</div>
+    <div class="footer-msg">Made with <span class="red">fear</span>, instant noodles, and zero attendance to spare.</div>
+  </div>
+
+</div>
+</body>
+</html>
