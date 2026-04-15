@@ -6,8 +6,7 @@ You play as a student navigating a dangerous academic environment where the only
 
 ## 🚀 Play the Game
 
-*(If you have deployed the game on GitHub Pages, add the link here!)*
-[Play Academic Survivor](#)
+[Play Academic Survivor Live!](https://Shreesh-o.github.io/Academic_Survivor/)
 
 ---
 
