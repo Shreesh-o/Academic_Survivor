@@ -2,6 +2,8 @@
    GAME SCENE — Core gameplay:
    Player movement, trail drawing, area
    capture, enemy collisions, level progression.
+   Uses a separate UI camera so HUD stays
+   at constant size regardless of game zoom.
    ======================================== */
 
 class GameScene extends Phaser.Scene {
@@ -20,6 +22,7 @@ class GameScene extends Phaser.Scene {
         this.gameActive = true;
         this.lastCapturePercent = 0;
         this.levelUpThreshold = GAME_CONFIG.LEVEL_UP_PERCENT;
+        this.maxLevel = ENEMY_TYPES.length;
 
         // ---- World bounds (physics) ----
         this.physics.world.setBounds(0, 0, mapW, mapH);
@@ -42,7 +45,7 @@ class GameScene extends Phaser.Scene {
         this.enemyManager = new EnemyManager(this);
         this.enemyManager.spawnForLevel(1);
 
-        // ---- Camera ----
+        // ---- Main camera (game world — zooms in/out) ----
         this.cameras.main.setBounds(0, 0, mapW, mapH);
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setZoom(GAME_CONFIG.ZOOM_GAME_START);
@@ -57,7 +60,7 @@ class GameScene extends Phaser.Scene {
             D: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
         };
 
-        // ---- HUD (scroll-factor 0 so it stays on screen) ----
+        // ---- Create HUD with a separate fixed camera ----
         this._createHUD();
 
         // ---- Background Music ----
@@ -67,37 +70,21 @@ class GameScene extends Phaser.Scene {
         this.lastCapturePercent = this.gridManager.getCapturePercent();
         this._updateHUD();
 
-        // ---- Level up announcement text (hidden) ----
-        this.levelUpText = this.add.text(
-            this.cameras.main.width / 2,
-            this.cameras.main.height / 2 - 40,
-            '', {
-                fontFamily: '"Press Start 2P"',
-                fontSize: '16px',
-                color: '#ffcc00',
-                align: 'center',
-                stroke: '#000000',
-                strokeThickness: 4,
-            }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(200).setAlpha(0);
-
         // ---- Trail point sampling timer ----
         this.trailSampleTimer = 0;
 
-        // ---- Register shutdown handler to clean up properly ----
+        // ---- Register shutdown handler ----
         this.events.on('shutdown', this._onShutdown, this);
     }
 
     /** Create player as physics-enabled graphics */
     _createPlayer(x, y) {
-        // Use a small zone for physics
         this.player = this.add.zone(x, y, GAME_CONFIG.PLAYER_SIZE * 2, GAME_CONFIG.PLAYER_SIZE * 2);
         this.physics.add.existing(this.player);
         this.player.body.setCollideWorldBounds(true);
         this.player.body.setCircle(GAME_CONFIG.PLAYER_SIZE);
         this.player.body.setOffset(0, 0);
 
-        // Player graphics
         this.playerGfx = this.add.graphics();
         this.playerGfx.setDepth(10);
     }
@@ -108,7 +95,6 @@ class GameScene extends Phaser.Scene {
         const x = this.player.x;
         const y = this.player.y;
 
-        // Outer glow — changes when trail is active
         if (this.isDrawingTrail) {
             this.playerGfx.fillStyle(0xff4444, 0.2);
             this.playerGfx.fillCircle(x, y, 22);
@@ -117,61 +103,82 @@ class GameScene extends Phaser.Scene {
             this.playerGfx.fillCircle(x, y, 20);
         }
 
-        // Body
         this.playerGfx.fillStyle(0x00ff88, 0.9);
         this.playerGfx.fillCircle(x, y, GAME_CONFIG.PLAYER_SIZE);
 
-        // Inner highlight
         this.playerGfx.fillStyle(0xffffff, 0.4);
         this.playerGfx.fillCircle(x - 4, y - 4, 5);
 
-        // Small directional indicator when trailing
         if (this.isDrawingTrail) {
             this.playerGfx.fillStyle(0xff4444, 0.6);
             this.playerGfx.fillCircle(x, y, 4);
         }
     }
 
-    /** Create the HUD elements */
+    /**
+     * Create HUD with a SEPARATE camera so it stays constant size.
+     * - All HUD elements are placed at large offsets (outside the game world)
+     * - A second camera renders only these elements at zoom=1
+     * - The main camera ignores HUD objects
+     */
     _createHUD() {
-        const pad = 16;
+        const pad = 20;
+        const screenW = this.cameras.main.width;
+        // Offset all HUD objects far outside the game world so the game camera never sees them
+        const HUD_OFFSET_X = GAME_CONFIG.MAP_WIDTH + 2000;
+        const HUD_OFFSET_Y = 0;
+        this.hudOffsetX = HUD_OFFSET_X;
+        this.hudOffsetY = HUD_OFFSET_Y;
+
+        // Collect all HUD objects so we can tell cameras what to show/hide
+        this.hudObjects = [];
+
+        // Semi-transparent background bar for HUD readability
+        this.hudBg = this.add.graphics();
+        this.hudBg.setDepth(200);
+        this.hudBg.fillStyle(0x000000, 0.6);
+        this.hudBg.fillRoundedRect(HUD_OFFSET_X + 10, HUD_OFFSET_Y + 10, 320, 80, 6);
+        this.hudObjects.push(this.hudBg);
 
         // Area percentage
-        this.hudAreaText = this.add.text(pad, pad, 'AREA: 0.0%', {
-            fontFamily: '"Press Start 2P"',
-            fontSize: '10px',
-            color: '#44ff88',
-            stroke: '#000000',
-            strokeThickness: 3,
-        }).setScrollFactor(0).setDepth(200);
-
-        // Level indicator
-        this.hudLevelText = this.add.text(pad, pad + 24, 'LEVEL 1: ASSIGNMENTS', {
-            fontFamily: '"Press Start 2P"',
-            fontSize: '9px',
-            color: '#ffcc00',
-            stroke: '#000000',
-            strokeThickness: 3,
-        }).setScrollFactor(0).setDepth(200);
-
-        // Status indicator (safe/danger)
-        this.hudStatusText = this.add.text(pad, pad + 46, '● SAFE ZONE', {
-            fontFamily: '"VT323"',
-            fontSize: '18px',
-            color: '#44ff88',
-            stroke: '#000000',
-            strokeThickness: 2,
-        }).setScrollFactor(0).setDepth(200);
-
-        // Music toggle in game
-        const screenW = this.cameras.main.width;
-        this.gameMusicBtn = this.add.text(screenW - 16, pad, '🔊', {
+        this.hudAreaText = this.add.text(HUD_OFFSET_X + pad, HUD_OFFSET_Y + pad, 'AREA: 0.0%', {
             fontFamily: '"Press Start 2P"',
             fontSize: '12px',
             color: '#44ff88',
+            stroke: '#000000',
+            strokeThickness: 3,
+        }).setDepth(201);
+        this.hudObjects.push(this.hudAreaText);
+
+        // Level indicator
+        this.hudLevelText = this.add.text(HUD_OFFSET_X + pad, HUD_OFFSET_Y + pad + 24, 'LEVEL 1: ASSIGNMENTS', {
+            fontFamily: '"Press Start 2P"',
+            fontSize: '10px',
+            color: '#ffcc00',
+            stroke: '#000000',
+            strokeThickness: 3,
+        }).setDepth(201);
+        this.hudObjects.push(this.hudLevelText);
+
+        // Status indicator
+        this.hudStatusText = this.add.text(HUD_OFFSET_X + pad, HUD_OFFSET_Y + pad + 48, '● SAFE ZONE', {
+            fontFamily: '"VT323"',
+            fontSize: '20px',
+            color: '#44ff88',
+            stroke: '#000000',
+            strokeThickness: 2,
+        }).setDepth(201);
+        this.hudObjects.push(this.hudStatusText);
+
+        // Music toggle (top-right)
+        this.gameMusicBtn = this.add.text(HUD_OFFSET_X + screenW - pad, HUD_OFFSET_Y + pad, '🔊', {
+            fontFamily: '"Press Start 2P"',
+            fontSize: '14px',
+            color: '#44ff88',
             backgroundColor: '#111111',
-            padding: { x: 6, y: 6 },
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(200).setInteractive({ useHandCursor: true });
+            padding: { x: 8, y: 8 },
+        }).setOrigin(1, 0).setDepth(201).setInteractive({ useHandCursor: true });
+        this.hudObjects.push(this.gameMusicBtn);
 
         this.gameMusicBtn.on('pointerdown', () => {
             const musicOn = this.registry.get('musicOn');
@@ -188,6 +195,39 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
+
+        // Level up announcement (centered on UI camera)
+        this.levelUpText = this.add.text(
+            HUD_OFFSET_X + screenW / 2,
+            HUD_OFFSET_Y + this.cameras.main.height / 2 - 40,
+            '', {
+                fontFamily: '"Press Start 2P"',
+                fontSize: '18px',
+                color: '#ffcc00',
+                align: 'center',
+                stroke: '#000000',
+                strokeThickness: 4,
+            }
+        ).setOrigin(0.5).setDepth(202).setAlpha(0);
+        this.hudObjects.push(this.levelUpText);
+
+        // ---- Create the UI camera ----
+        this.uiCamera = this.cameras.add(0, 0, screenW, this.cameras.main.height);
+        this.uiCamera.setZoom(1);
+        this.uiCamera.setScroll(HUD_OFFSET_X, HUD_OFFSET_Y);
+        this.uiCamera.setBackgroundColor('rgba(0,0,0,0)'); // transparent
+        // Transparent background — Phaser needs this flag
+        this.uiCamera.transparent = true;
+
+        // Main camera: ignore all HUD objects
+        for (const obj of this.hudObjects) {
+            this.cameras.main.ignore(obj);
+        }
+
+        // UI camera: ignore everything EXCEPT HUD objects
+        // We'll ignore the main game world objects from uiCamera
+        // Easier approach: ignore all known game objects
+        this.uiCamera.ignore(this.children.list.filter(child => !this.hudObjects.includes(child)));
     }
 
     /** Setup background music */
@@ -263,26 +303,30 @@ class GameScene extends Phaser.Scene {
     update(time, delta) {
         if (!this.gameActive) return;
 
-        // ---- Player movement ----
         this._handleMovement();
-
-        // ---- Draw player graphic ----
         this._drawPlayer();
-
-        // ---- Trail logic ----
         this._handleTrail(delta);
-
-        // ---- Render trail ----
         this._renderTrail();
-
-        // ---- Enemy update ----
         this.enemyManager.update();
-
-        // ---- Collision checks ----
         this._checkCollisions();
-
-        // ---- Update HUD ----
         this._updateHUD();
+
+        // Keep UI camera ignoring newly spawned game objects (enemies etc.)
+        this._syncCameras();
+    }
+
+    /** Ensure UI camera ignores any newly added game-world objects */
+    _syncCameras() {
+        const hudSet = new Set(this.hudObjects);
+        this.children.list.forEach(child => {
+            if (!hudSet.has(child)) {
+                // Game world object — make sure uiCamera ignores it
+                if (!child._uiIgnored) {
+                    this.uiCamera.ignore(child);
+                    child._uiIgnored = true;
+                }
+            }
+        });
     }
 
     /** Handle WASD / Arrow key movement */
@@ -297,7 +341,6 @@ class GameScene extends Phaser.Scene {
         if (this.cursors.up.isDown || this.wasd.W.isDown) vy = -speed;
         else if (this.cursors.down.isDown || this.wasd.S.isDown) vy = speed;
 
-        // Normalize diagonal
         if (vx !== 0 && vy !== 0) {
             vx *= 0.707;
             vy *= 0.707;
@@ -314,7 +357,6 @@ class GameScene extends Phaser.Scene {
         const isMoving = (this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0);
 
         if (this.isDrawingTrail) {
-            // Add points to trail as player moves
             this.trailSampleTimer += delta;
             if (this.trailSampleTimer > 50 && isMoving) {
                 this.trailSampleTimer = 0;
@@ -327,12 +369,10 @@ class GameScene extends Phaser.Scene {
                 }
             }
 
-            // Check if player returned to captured territory → close loop
             if (inCaptured && this.trailPoints.length > 6) {
                 this._captureArea();
             }
         } else {
-            // Start trail when player leaves captured area while moving
             if (!inCaptured && isMoving) {
                 this.isDrawingTrail = true;
                 this.trailPoints = [{ x: px, y: py }];
@@ -344,7 +384,6 @@ class GameScene extends Phaser.Scene {
     /** Render the trail line */
     _renderTrail() {
         this.trailGraphics.clear();
-
         if (this.trailPoints.length < 2) return;
 
         // Trail glow
@@ -365,7 +404,7 @@ class GameScene extends Phaser.Scene {
         }
         this.trailGraphics.strokePath();
 
-        // Dots at trail points for visual flair
+        // Dots
         this.trailGraphics.fillStyle(GAME_CONFIG.TRAIL_COLOR, 1);
         for (let i = 0; i < this.trailPoints.length; i += 3) {
             this.trailGraphics.fillCircle(this.trailPoints[i].x, this.trailPoints[i].y, 2);
@@ -376,27 +415,25 @@ class GameScene extends Phaser.Scene {
     _captureArea() {
         const gained = this.gridManager.captureFromTrail(this.trailPoints);
 
-        // Reset trail state
         this.isDrawingTrail = false;
         this.trailPoints = [];
         this.trailGraphics.clear();
 
-        // Flash effect on capture
         if (gained > 0) {
             this.cameras.main.flash(200, 0, 255, 100, false);
         }
 
         const currentPercent = this.gridManager.getCapturePercent();
 
-        // ---- Win check ----
+        // Win check
         if (currentPercent >= GAME_CONFIG.WIN_PERCENT) {
             this._winGame(currentPercent);
             return;
         }
 
-        // ---- Level up check ----
+        // Level up check
         const percentGainedSinceLastLevel = currentPercent - this.lastCapturePercent;
-        if (percentGainedSinceLastLevel >= this.levelUpThreshold && this.currentLevel < 6) {
+        if (percentGainedSinceLastLevel >= this.levelUpThreshold && this.currentLevel < this.maxLevel) {
             this._levelUp();
             this.lastCapturePercent = currentPercent;
         }
@@ -406,12 +443,11 @@ class GameScene extends Phaser.Scene {
     _levelUp() {
         this.currentLevel++;
 
-        // Spawn new enemies
         this.enemyManager.spawnForLevel(this.currentLevel);
 
         // Zoom out slightly
         const newZoom = GAME_CONFIG.ZOOM_GAME_START - (this.currentLevel - 1) * GAME_CONFIG.ZOOM_LEVEL_STEP;
-        const clampedZoom = Math.max(newZoom, 0.5);
+        const clampedZoom = Math.max(newZoom, 0.45);
         this.cameras.main.zoomTo(clampedZoom, 1000, 'Sine.easeInOut');
 
         // Show level up announcement
@@ -420,10 +456,8 @@ class GameScene extends Phaser.Scene {
         this.levelUpText.setText('⚠ LEVEL ' + this.currentLevel + ' ⚠\n' + label + ' INCOMING!');
         this.levelUpText.setAlpha(1);
 
-        // Camera shake
         this.cameras.main.shake(400, 0.008);
 
-        // Fade out announcement
         this.tweens.add({
             targets: this.levelUpText,
             alpha: 0,
@@ -432,13 +466,13 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    /** Check enemy collisions with player and trail */
+    /** Check enemy collisions */
     _checkCollisions() {
         const px = this.player.x;
         const py = this.player.y;
         const inCaptured = this.gridManager.isCaptured(px, py);
 
-        // Enemy vs Player — only kill when player is outside safe zone or drawing trail
+        // Enemy vs Player — only when outside safe zone
         if (!inCaptured || this.isDrawingTrail) {
             if (this.enemyManager.checkPlayerCollision(px, py, GAME_CONFIG.PLAYER_SIZE)) {
                 this._gameOver();
@@ -458,12 +492,10 @@ class GameScene extends Phaser.Scene {
         this.gameActive = false;
         this.player.body.setVelocity(0, 0);
 
-        // Stop music
         if (this.bgMusic && this.bgMusic.isPlaying) {
             this.bgMusic.stop();
         }
 
-        // Camera red flash
         this.cameras.main.flash(500, 255, 0, 0, false);
         this.cameras.main.shake(500, 0.02);
 
@@ -482,12 +514,10 @@ class GameScene extends Phaser.Scene {
         this.gameActive = false;
         this.player.body.setVelocity(0, 0);
 
-        // Stop music
         if (this.bgMusic && this.bgMusic.isPlaying) {
             this.bgMusic.stop();
         }
 
-        // Gold flash
         this.cameras.main.flash(800, 255, 200, 0, false);
 
         this.time.delayedCall(1000, () => {
@@ -498,7 +528,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    /** Cleanup on scene shutdown — called via events.on('shutdown') */
+    /** Cleanup on scene shutdown */
     _onShutdown() {
         if (this.bgMusic) {
             this.bgMusic.stop();

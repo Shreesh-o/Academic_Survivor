@@ -12,6 +12,14 @@ class MenuScene extends Phaser.Scene {
     create() {
         const mapW = GAME_CONFIG.MAP_WIDTH;
         const mapH = GAME_CONFIG.MAP_HEIGHT;
+        const screenW = this.cameras.main.width;
+        const screenH = this.cameras.main.height;
+
+        // ---- Camera setup: zoomed out to show full map, NO bounds so it centers freely ----
+        this.cameras.main.setZoom(GAME_CONFIG.ZOOM_MENU);
+        this.cameras.main.setBackgroundColor(0x050510);
+        // Center the camera on the map center
+        this.cameras.main.centerOn(mapW / 2, mapH / 2);
 
         // ---- Draw the map background ----
         this._drawMapBackground(mapW, mapH);
@@ -37,23 +45,15 @@ class MenuScene extends Phaser.Scene {
             ease: 'Sine.easeInOut',
         });
 
-        // ---- Camera setup: zoomed out to show full map ----
-        this.cameras.main.setBounds(0, 0, mapW, mapH);
-        this.cameras.main.centerOn(cx, cy);
-        this.cameras.main.setZoom(GAME_CONFIG.ZOOM_MENU);
-        this.cameras.main.setBackgroundColor(0x050510);
+        // ---- UI layer (fixed to camera via scrollFactor 0) ----
 
-        // ---- UI layer (fixed to camera, ignores zoom) ----
-        // Title
-        const screenW = this.cameras.main.width;
-        const screenH = this.cameras.main.height;
-
-        this.titleText = this.add.text(screenW / 2, screenH * 0.28, 'ACADEMIC\nSURVIVOR', {
+        // Title — large and centered
+        this.titleText = this.add.text(screenW / 2, screenH * 0.22, 'ACADEMIC\nSURVIVOR', {
             fontFamily: '"Press Start 2P"',
-            fontSize: '32px',
+            fontSize: '36px',
             color: '#ff4444',
             align: 'center',
-            lineSpacing: 12,
+            lineSpacing: 14,
             shadow: {
                 offsetX: 3,
                 offsetY: 3,
@@ -64,26 +64,26 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
         // Subtitle
-        this.subtitleText = this.add.text(screenW / 2, screenH * 0.28 + 90, 'A SEMESTER ESCAPE SIMULATOR', {
+        this.subtitleText = this.add.text(screenW / 2, screenH * 0.22 + 100, 'A SEMESTER ESCAPE SIMULATOR', {
             fontFamily: '"Orbitron"',
-            fontSize: '11px',
+            fontSize: '12px',
             color: '#ffcc00',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
         // Tagline
-        this.add.text(screenW / 2, screenH * 0.28 + 120, 'Draw boundaries. Claim territory. Don\'t get crushed by deadlines.', {
+        this.add.text(screenW / 2, screenH * 0.22 + 130, 'Draw boundaries. Claim territory. Don\'t get crushed by deadlines.', {
             fontFamily: '"VT323"',
-            fontSize: '18px',
-            color: '#888888',
+            fontSize: '20px',
+            color: '#999999',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
         // ---- START button ----
-        this.startBtn = this.add.text(screenW / 2, screenH * 0.62, '▶  START SEMESTER', {
+        this.startBtn = this.add.text(screenW / 2, screenH * 0.6, '▶  START SEMESTER', {
             fontFamily: '"Press Start 2P"',
             fontSize: '14px',
             color: '#0a0a0f',
             backgroundColor: '#ff4444',
-            padding: { x: 24, y: 14 },
+            padding: { x: 28, y: 16 },
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true });
 
         // Button hover effects
@@ -110,28 +110,26 @@ class MenuScene extends Phaser.Scene {
         });
 
         // ---- Controls hint ----
-        this.add.text(screenW / 2, screenH * 0.74, 'WASD / Arrow Keys to move', {
+        this.add.text(screenW / 2, screenH * 0.72, 'WASD / Arrow Keys to move', {
             fontFamily: '"VT323"',
-            fontSize: '16px',
+            fontSize: '20px',
             color: '#555555',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
-        // ---- Music toggle button (top-right) ----
+        // ---- Music toggle button (top-right with padding) ----
         this.musicOn = true;
-        this.musicBtn = this.add.text(screenW - 20, 20, '🔊 MUSIC: ON', {
+        this.musicBtn = this.add.text(screenW - 24, 24, '🔊 MUSIC: ON', {
             fontFamily: '"Press Start 2P"',
-            fontSize: '8px',
+            fontSize: '9px',
             color: '#44ff88',
             backgroundColor: '#111111',
-            padding: { x: 10, y: 8 },
+            padding: { x: 12, y: 10 },
         }).setOrigin(1, 0).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true });
 
         this.musicBtn.on('pointerdown', () => {
             this.musicOn = !this.musicOn;
             this.musicBtn.setText(this.musicOn ? '🔊 MUSIC: ON' : '🔇 MUSIC: OFF');
             this.musicBtn.setStyle({ color: this.musicOn ? '#44ff88' : '#ff4444' });
-
-            // Store preference globally
             this.registry.set('musicOn', this.musicOn);
         });
 
@@ -139,14 +137,15 @@ class MenuScene extends Phaser.Scene {
         this.registry.set('musicOn', this.musicOn);
 
         // ---- Badges ----
-        const badgeY = screenH * 0.82;
+        const badgeY = screenH * 0.83;
         const badges = [
             { text: 'GENRE: ROGUELIKE HORROR', color: '#ff6b6b' },
             { text: 'DIFFICULTY: IMPOSSIBLE', color: '#44ff88' },
             { text: 'LIVES: 1 (CGPA)', color: '#00d4ff' },
         ];
-        const totalBadgeWidth = badges.length * 170;
-        let bx = screenW / 2 - totalBadgeWidth / 2 + 85;
+        const badgeSpacing = 180;
+        const totalBadgeWidth = (badges.length - 1) * badgeSpacing;
+        let bx = screenW / 2 - totalBadgeWidth / 2;
         badges.forEach(b => {
             this.add.text(bx, badgeY, b.text, {
                 fontFamily: '"Press Start 2P"',
@@ -156,13 +155,13 @@ class MenuScene extends Phaser.Scene {
                 padding: { x: 8, y: 5 },
             }).setOrigin(0.5).setScrollFactor(0).setDepth(100)
               .setStroke(b.color, 1);
-            bx += 170;
+            bx += badgeSpacing;
         });
 
         // ---- Footer ----
-        this.add.text(screenW / 2, screenH - 25, 'Built under pressure, powered by caffeine and the fear of detention.', {
+        this.add.text(screenW / 2, screenH - 30, 'Built under pressure, powered by caffeine and the fear of detention.', {
             fontFamily: '"VT323"',
-            fontSize: '14px',
+            fontSize: '16px',
             color: '#333333',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
@@ -209,7 +208,7 @@ class MenuScene extends Phaser.Scene {
         gridGfx.setDepth(0);
         gridGfx.lineStyle(1, 0x111122, 0.3);
 
-        const step = GAME_CONFIG.CELL_SIZE * 5; // every 5 cells
+        const step = GAME_CONFIG.CELL_SIZE * 5;
         for (let x = 0; x <= w; x += step) {
             gridGfx.moveTo(x, 0);
             gridGfx.lineTo(x, h);
@@ -223,13 +222,10 @@ class MenuScene extends Phaser.Scene {
 
     /** Draw player icon */
     _drawPlayerAt(gfx, x, y) {
-        // Outer glow
         gfx.fillStyle(0x00ff88, 0.15);
         gfx.fillCircle(x, y, 24);
-        // Body
         gfx.fillStyle(0x00ff88, 0.9);
         gfx.fillCircle(x, y, GAME_CONFIG.PLAYER_SIZE);
-        // Inner highlight
         gfx.fillStyle(0xffffff, 0.4);
         gfx.fillCircle(x - 4, y - 4, 5);
     }
@@ -262,7 +258,6 @@ class MenuScene extends Phaser.Scene {
 
     /** Transition: zoom into player, then start GameScene */
     _startGame() {
-        // Disable button
         this.startBtn.disableInteractive();
         this.startBtn.setAlpha(0.5);
 
