@@ -114,24 +114,7 @@ class MenuScene extends Phaser.Scene {
             color: '#666666',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
-        // ---- Music toggle (top-right) ----
-        this.musicOn = true;
-        this.musicBtn = this.add.text(screenW - 30, 30, '🔊 MUSIC: ON', {
-            fontFamily: '"Press Start 2P"',
-            fontSize: '12px',
-            color: '#44ff88',
-            backgroundColor: '#111111',
-            padding: { x: 14, y: 10 },
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true });
 
-        this.musicBtn.on('pointerdown', () => {
-            this.musicOn = !this.musicOn;
-            this.musicBtn.setText(this.musicOn ? '🔊 MUSIC: ON' : '🔇 MUSIC: OFF');
-            this.musicBtn.setStyle({ color: this.musicOn ? '#44ff88' : '#ff4444' });
-            this.registry.set('musicOn', this.musicOn);
-        });
-
-        this.registry.set('musicOn', this.musicOn);
 
         // ---- Badges ----
         const badgeY = 560;
@@ -247,7 +230,7 @@ class MenuScene extends Phaser.Scene {
         this.cameras.main.zoomTo(GAME_CONFIG.ZOOM_GAME_START, 1500, 'Sine.easeInOut');
 
         this.tweens.add({
-            targets: [this.titleText, this.subtitleText, this.startBtn, this.musicBtn],
+            targets: [this.titleText, this.subtitleText, this.startBtn],
             alpha: 0,
             duration: 800,
         });
