@@ -24,6 +24,11 @@
 
 <br/>
 
+> ### ⚡ In a Nutshell
+> **Academic Survivor** is a fast-paced college survival arcade game inspired by *Qix* and *Paper.io*. Play as an engineering student carving out safe territory across campus while dodging relentless assignments, vicious exams, and the terrifying HOD. Enclose **75%** of the map to beat the semester and graduate without getting detained!
+
+---
+
 ## 📜 The Lore
 
 You are a tired student stranded in an expansive academic arena. Your only lifeline to graduation is to **carve out safe territory** by looping across the map.
